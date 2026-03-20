@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 class StopTimelineItem extends StatelessWidget {
+  // stop display name
   final String stopName;
+  // line color values
   final Color lineColor;
+  // first stop indicator
   final bool isFirst;
+  // last stop indicator
   final bool isLast;
-  final int waitMinutes;
   final VoidCallback onTap;
 
   const StopTimelineItem({
@@ -14,7 +17,6 @@ class StopTimelineItem extends StatelessWidget {
     required this.lineColor,
     required this.isFirst,
     required this.isLast,
-    required this.waitMinutes,
     required this.onTap,
   });
 
@@ -29,7 +31,7 @@ class StopTimelineItem extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // timeline with connectors and dot
+            // line timeline column
             SizedBox(
               width: 40,
               child: Column(
@@ -151,13 +153,10 @@ class StopTimelineItem extends StatelessWidget {
                         color: lineColor.withAlpha(26),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        '${waitMinutes}m',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: lineColor,
-                        ),
+                      child: Icon(
+                        Icons.access_time_rounded,
+                        size: 16,
+                        color: lineColor,
                       ),
                     ),
                     const SizedBox(width: 4),

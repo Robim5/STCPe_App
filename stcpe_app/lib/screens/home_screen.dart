@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../data/mock_data.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bus_line.dart';
+import '../services/api_service.dart';
 import '../widgets/bento_favorites.dart';
 import '../widgets/bus_list_item.dart';
 import 'bus_detail_screen.dart';
@@ -13,13 +15,94 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _selectedFilter = 'Todos';
+  final _apiService = ApiService(); // api client instance
+  List<BusLine> _allLines = []; // full lines data
+  List<String> _municipalities = ['Todos']; // filter options
+  String _selectedFilter = 'Todos'; // active filter (default)
+  bool _isLoading = true; // loading state
+  bool _hasError = false; // error state
+  Set<String> _favoriteNumbers = {}; // saved favorites
+
+  String _searchQuery = ''; // typed query
+  Timer? _debounce; // search debounce timer
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites(); // restore saved favorites
+    _fetchData(); // load lines
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel(); // clear timer
+    super.dispose();
+  }
+
+  Future<void> _loadFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _favoriteNumbers = (prefs.getStringList('favorites') ?? []).toSet();
+    });
+  }
+
+  Future<void> _saveFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('favorites', _favoriteNumbers.toList());
+  }
+
+  Future<void> _fetchData() async {
+    // fetch all lines
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
+    final lines = await _apiService.fetchLinhas();
+
+    if (!mounted) return;
+
+    if (lines.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+      });
+      return;
+    }
+
+    // apply saved favorites
+    for (final line in lines) {
+      line.isFavorite = _favoriteNumbers.contains(line.number);
+    }
+
+    // build municipality filters
+    final muniSet = lines.map((l) => l.municipality).toSet();
+    final muniList = muniSet.toList()..sort();
+    muniList.insert(0, 'Todos');
+
+    setState(() {
+      _allLines = lines;
+      _municipalities = muniList;
+      _isLoading = false;
+    });
+  }
 
   List<BusLine> get _filteredLines {
-    if (_selectedFilter == 'Todos') return MockData.busLines;
-    return MockData.busLines
-        .where((l) => l.municipality == _selectedFilter)
-        .toList();
+    var list = _allLines; // start from all
+    if (_selectedFilter != 'Todos') {
+      list = list.where((l) => l.municipality == _selectedFilter).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      list = list
+          .where((l) =>
+              l.number.toLowerCase().contains(q) ||
+              l.origin.toLowerCase().contains(q) ||
+              l.destination.toLowerCase().contains(q) ||
+              l.municipality.toLowerCase().contains(q))
+          .toList();
+    }
+    return list;
   }
 
   String get _greeting {
@@ -30,14 +113,32 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _toggleFavorite(BusLine line) {
-    setState(() => line.isFavorite = !line.isFavorite);
+    // toggle favorite state
+    setState(() {
+      line.isFavorite = !line.isFavorite;
+      if (line.isFavorite) {
+        _favoriteNumbers.add(line.number);
+      } else {
+        _favoriteNumbers.remove(line.number);
+      }
+    });
+    _saveFavorites();
   }
 
   void _openDetail(BusLine line) {
+    // navigate detail page
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => BusDetailScreen(busLine: line)),
     );
+  }
+
+  void _onSearchChanged(String value) {
+    // throttled query update
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _searchQuery = value);
+    });
   }
 
   @override
@@ -99,6 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const WidgetStatePropertyAll(
                   EdgeInsets.symmetric(horizontal: 16),
                 ),
+                onChanged: _onSearchChanged,
               ),
             ),
           ),
@@ -152,10 +254,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 scrollDirection: Axis.horizontal,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                itemCount: MockData.municipalities.length,
+                itemCount: _municipalities.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
-                  final name = MockData.municipalities[i];
+                  final name = _municipalities[i];
                   return FilterChip(
                     label: Text(name),
                     selected: _selectedFilter == name,
@@ -167,8 +269,37 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // bus list
-          if (filtered.isEmpty)
+          // loading / error / content
+          if (_isLoading)
+            const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_hasError)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.cloud_off_rounded,
+                        size: 48,
+                        color: theme.colorScheme.onSurface.withAlpha(77)),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Sem liga\u00e7\u00e3o',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withAlpha(128),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.tonal(
+                      onPressed: _fetchData,
+                      child: const Text('Tentar novamente'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (filtered.isEmpty)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 48),
@@ -181,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               theme.colorScheme.onSurface.withAlpha(77)),
                       const SizedBox(height: 12),
                       Text(
-                        'Sem linhas neste munic\u00edpio',
+                        'Sem resultados',
                         style: TextStyle(
                           color:
                               theme.colorScheme.onSurface.withAlpha(128),

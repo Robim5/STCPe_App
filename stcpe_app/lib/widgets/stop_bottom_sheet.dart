@@ -1,17 +1,53 @@
 import 'package:flutter/material.dart';
 import '../models/bus_line.dart';
+import '../models/bus_stop.dart';
+import '../models/eta_info.dart';
+import '../services/api_service.dart';
 
-class StopBottomSheet extends StatelessWidget {
+class StopBottomSheet extends StatefulWidget {
+  // bus line data
   final BusLine busLine;
-  final String stopName;
-  final int waitMinutes;
+  // stop data
+  final BusStop stop;
+  // direction string
+  final String sentido;
 
   const StopBottomSheet({
     super.key,
     required this.busLine,
-    required this.stopName,
-    required this.waitMinutes,
+    required this.stop,
+    required this.sentido,
   });
+
+  @override
+  State<StopBottomSheet> createState() => _StopBottomSheetState();
+}
+
+class _StopBottomSheetState extends State<StopBottomSheet> {
+  final _apiService = ApiService(); // api client
+  bool _isLoading = true; // loading state
+  List<EtaInfo> _etas = []; // eta results
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchEta(); // load eta
+  }
+
+  Future<void> _fetchEta() async {
+    // get current etas
+    final etas = await _apiService.fetchETA(
+      widget.busLine.number,
+      widget.stop.codigo,
+      widget.sentido,
+    );
+    if (mounted) {
+      setState(() {
+        _etas = etas;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +84,7 @@ class StopBottomSheet extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: busLine.color,
+                color: widget.busLine.color,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -58,7 +94,7 @@ class StopBottomSheet extends StatelessWidget {
                       color: Colors.white, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    'Linha ${busLine.number}',
+                    'Linha ${widget.busLine.number}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -72,7 +108,7 @@ class StopBottomSheet extends StatelessWidget {
 
             // stop name
             Text(
-              stopName,
+              widget.stop.nome,
               style:
                   const TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
               textAlign: TextAlign.center,
@@ -84,51 +120,83 @@ class StopBottomSheet extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 24),
               decoration: BoxDecoration(
-                color: busLine.color.withAlpha(20),
+                color: widget.busLine.color.withAlpha(20),
                 borderRadius: BorderRadius.circular(20),
                 border:
-                    Border.all(color: busLine.color.withAlpha(38)),
+                    Border.all(color: widget.busLine.color.withAlpha(38)),
               ),
-              child: Column(
-                children: [
-                  Text(
-                    'Pr\u00f3ximo autocarro em',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurface.withAlpha(153),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Icon(Icons.access_time_filled_rounded,
-                          color: busLine.color, size: 36),
-                      const SizedBox(width: 12),
-                      Text(
-                        '$waitMinutes',
-                        style: TextStyle(
-                          fontSize: 56,
-                          fontWeight: FontWeight.w900,
-                          color: busLine.color,
-                          height: 1,
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _etas.isEmpty
+                      ? Column(
+                          children: [
+                            Icon(Icons.info_outline_rounded,
+                                color: widget.busLine.color, size: 36),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Sem previs\u00e3o dispon\u00edvel',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: theme.colorScheme.onSurface
+                                    .withAlpha(153),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            Text(
+                              'Pr\u00f3ximo autocarro em',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.colorScheme.onSurface
+                                    .withAlpha(153),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Icon(Icons.access_time_filled_rounded,
+                                    color: widget.busLine.color, size: 36),
+                                const SizedBox(width: 12),
+                                Text(
+                                  '${_etas.first.minutos}',
+                                  style: TextStyle(
+                                    fontSize: 56,
+                                    fontWeight: FontWeight.w900,
+                                    color: widget.busLine.color,
+                                    height: 1,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'min',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                    color:
+                                        widget.busLine.color.withAlpha(180),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_etas.length > 1) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                'Seguintes: ${_etas.skip(1).map((e) => '${e.minutos} min').join(', ')}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: theme.colorScheme.onSurface
+                                      .withAlpha(153),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'min',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                          color: busLine.color.withAlpha(180),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
             ),
             const SizedBox(height: 24),
 
@@ -139,7 +207,7 @@ class StopBottomSheet extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: () => Navigator.pop(context),
                 style: FilledButton.styleFrom(
-                  backgroundColor: busLine.color,
+                  backgroundColor: widget.busLine.color,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16)),
                 ),

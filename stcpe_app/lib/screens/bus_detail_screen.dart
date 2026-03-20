@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/bus_line.dart';
-import '../data/mock_data.dart';
+import '../models/bus_stop.dart';
+import '../services/api_service.dart';
 import '../widgets/stop_bottom_sheet.dart';
 import '../widgets/stop_timeline_item.dart';
 
+// bus line model data
 class BusDetailScreen extends StatefulWidget {
   final BusLine busLine;
 
@@ -14,34 +16,79 @@ class BusDetailScreen extends StatefulWidget {
 }
 
 class _BusDetailScreenState extends State<BusDetailScreen> {
-  bool _isForward = true;
+  final _apiService = ApiService();
+  bool _isForward = true; // current direction flag
+  bool _isLoading = true; // loading indicator state
+  bool _hasError = false; // error indicator state
+  List<BusStop> _stopsIda = []; // forward stops
+  List<BusStop> _stopsVolta = []; // reverse stops
 
-  List<String> get _currentStops =>
-      _isForward ? widget.busLine.stopsForward : widget.busLine.stopsReverse;
+  List<BusStop> get _currentStops =>
+      _isForward ? _stopsIda : _stopsVolta; // current list
 
-  String get _currentDirection =>
-      _isForward ? widget.busLine.forwardLabel : widget.busLine.reverseLabel;
+  String get _currentDirection => _isForward
+      ? widget.busLine.forwardLabel
+      : widget.busLine.reverseLabel; // direction text
 
+  String get _currentSentido => _isForward ? 'ida' : 'volta'; // direction code
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStops();
+  }
+
+  // fetch stops data
+  Future<void> _fetchStops() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
+    final paragens = await _apiService.fetchParagens(widget.busLine.number);
+
+    if (!mounted) return;
+
+    final ida = paragens['ida'] ?? [];
+    final volta = paragens['volta'] ?? [];
+
+    if (ida.isEmpty && volta.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+      });
+      return;
+    }
+
+    setState(() {
+      _stopsIda = ida;
+      _stopsVolta = volta;
+      _isLoading = false;
+    });
+  }
+
+  // switch direction state
   void _toggleDirection() {
     setState(() => _isForward = !_isForward);
   }
 
-  void _showStopDetails(String stopName) {
+  // open bottom sheet
+  void _showStopDetails(BusStop stop) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => StopBottomSheet(
         busLine: widget.busLine,
-        stopName: stopName,
-        waitMinutes: MockData.getWaitTime(stopName),
+        stop: stop,
+        sentido: _currentSentido,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final stops = _currentStops;
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -49,8 +96,7 @@ class _BusDetailScreenState extends State<BusDetailScreen> {
         title: Row(
           children: [
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(51),
                 borderRadius: BorderRadius.circular(10),
@@ -79,20 +125,67 @@ class _BusDetailScreenState extends State<BusDetailScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-        itemCount: stops.length,
-        itemBuilder: (_, i) {
-          return StopTimelineItem(
-            stopName: stops[i],
-            lineColor: widget.busLine.color,
-            isFirst: i == 0,
-            isLast: i == stops.length - 1,
-            waitMinutes: MockData.getWaitTime(stops[i]),
-            onTap: () => _showStopDetails(stops[i]),
-          );
-        },
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _hasError
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.cloud_off_rounded,
+                    size: 48,
+                    color: theme.colorScheme.onSurface.withAlpha(77),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Sem liga\u00e7\u00e3o',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withAlpha(128),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.tonal(
+                    onPressed: _fetchStops,
+                    child: const Text('Tentar novamente'),
+                  ),
+                ],
+              ),
+            )
+          : _currentStops.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 48,
+                    color: theme.colorScheme.onSurface.withAlpha(77),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Sem paragens neste sentido',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withAlpha(128),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+              itemCount: _currentStops.length,
+              itemBuilder: (_, i) {
+                final stop = _currentStops[i];
+                return StopTimelineItem(
+                  stopName: stop.nome,
+                  lineColor: widget.busLine.color,
+                  isFirst: i == 0,
+                  isLast: i == _currentStops.length - 1,
+                  onTap: () => _showStopDetails(stop),
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _toggleDirection,
         backgroundColor: widget.busLine.color,

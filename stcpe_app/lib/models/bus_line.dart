@@ -16,10 +16,35 @@ class BusLine {
     required this.origin,
     required this.destination,
     required this.municipality,
-    required this.stopsForward,
-    required this.stopsReverse,
+    this.stopsForward = const [],
+    this.stopsReverse = const [],
     this.isFavorite = false,
   });
+
+  static const Map<String, Color> colorMap = {
+    'azul': Color(0xFF052659),
+    'amarelo': Color(0xFFF9A825),
+    'verde': Color(0xFF2E7D32),
+    'vermelho': Color(0xFFC62828),
+    'roxo': Color(0xFF6A1B9A),
+    'laranja': Color(0xFFE65100),
+    'preto': Color(0xFF212121),
+  };
+
+  factory BusLine.fromJson(Map<String, dynamic> json) {
+    final sentidos = json['sentidos'] as Map<String, dynamic>? ?? {};
+    final ida = sentidos['ida'] as Map<String, dynamic>? ?? {};
+
+    final corStr = (json['cor'] as String?)?.toLowerCase() ?? '';
+
+    return BusLine(
+      number: json['linha'] as String? ?? '',
+      color: colorMap[corStr] ?? const Color(0xFF052659),
+      origin: ida['origem'] as String? ?? '',
+      destination: ida['destino'] as String? ?? '',
+      municipality: json['municipio'] as String? ?? '',
+    );
+  }
 
   String get routeLabel => '$origin \u2194 $destination';
   String get forwardLabel => '$origin \u2192 $destination';
