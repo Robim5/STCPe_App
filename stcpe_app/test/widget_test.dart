@@ -7,11 +7,11 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:stcpe_app/main.dart';
+import 'package:locate/main.dart';
 
 void main() {
   testWidgets('App renders splash screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const STCPeApp());
-    expect(find.text('STCPe'), findsOneWidget);
+    await tester.pumpWidget(const LocaTeApp());
+    expect(find.text('LocaTe'), findsOneWidget);
   });
 }

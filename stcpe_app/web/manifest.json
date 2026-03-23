@@ -1,6 +1,6 @@
 {
-    "name": "stcpe_app",
-    "short_name": "stcpe_app",
+    "name": "LocaTe",
+    "short_name": "LocaTe",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

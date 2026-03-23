@@ -169,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const Text(
-                    'STCPe',
+                    'LocaTe',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,

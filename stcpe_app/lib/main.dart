@@ -11,16 +11,16 @@ void main() {
       statusBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(const STCPeApp());
+  runApp(const LocaTeApp());
 }
 
-class STCPeApp extends StatelessWidget {
-  const STCPeApp({super.key});
+class LocaTeApp extends StatelessWidget {
+  const LocaTeApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'STCPe',
+      title: 'LocaTe',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

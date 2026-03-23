@@ -96,7 +96,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 32),
                   const Text(
-                    'STCPe',
+                    'LocaTe',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 44,

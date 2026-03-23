@@ -1,4 +1,4 @@
-# stcpe_app
+# LocaTe
 
 A new Flutter project.
 
