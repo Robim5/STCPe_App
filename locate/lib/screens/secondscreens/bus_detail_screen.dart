@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/bus_line.dart';
-import '../models/bus_stop.dart';
-import '../services/api_service.dart';
-import '../widgets/stop_bottom_sheet.dart';
-import '../widgets/stop_timeline_item.dart';
+import '../../models/bus_line.dart';
+import '../../models/bus_stop.dart';
+import '../../services/api_service.dart';
+import '../../widgets/stop_bottom_sheet.dart';
+import '../../widgets/stop_timeline_item.dart';
 
 // bus line model data
 class BusDetailScreen extends StatefulWidget {

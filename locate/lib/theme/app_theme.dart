@@ -4,18 +4,18 @@ class AppTheme {
   AppTheme._();
 
   // light palette
-  static const Color lightDarkest = Color(0xFF03045E);
-  static const Color lightDark = Color(0xFF0077B6);
-  static const Color lightMedium = Color(0xFF00B4D8);
-  static const Color lightLight = Color(0xFF90E0EF);
-  static const Color lightLightest = Color(0xFFCAF0F8);
+  static const Color lightDarkest = Color(0xFF3F3368);
+  static const Color lightDark = Color(0xFF6B5BA0);
+  static const Color lightMedium = Color(0xFF927FBD);
+  static const Color lightLight = Color(0xFFB8AADB);
+  static const Color lightLightest = Color(0xFFE8E4F3);
 
   // dark palette
-  static const Color darkDarkest = Color(0xFF021024);
-  static const Color darkDark = Color(0xFF052659);
-  static const Color darkMedium = Color(0xFF5483B3);
-  static const Color darkLight = Color(0xFF7DA0CA);
-  static const Color darkLightest = Color(0xFFC1E8FF);
+  static const Color darkDarkest = Color(0xFF0B0A1A);
+  static const Color darkDark = Color(0xFF251A50);
+  static const Color darkMedium = Color(0xFF7B6FD9);
+  static const Color darkLight = Color(0xFFA79FFF);
+  static const Color darkLightest = Color(0xFFD9CEFF);
 
   // light theme
   static ThemeData get lightTheme {
