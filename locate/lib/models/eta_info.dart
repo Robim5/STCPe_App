@@ -12,11 +12,17 @@ class EtaInfo {
   });
 
   factory EtaInfo.fromJson(Map<String, dynamic> json) {
+    // tempo_estimado_min comes as double (e.g. 7.0)
+    final rawMin = json['tempo_estimado_min'] ??
+        json['minutos'] ??
+        json['eta_min'] ??
+        json['tempo'] ??
+        0;
     return EtaInfo(
       linha: (json['linha'] ?? json['line'] ?? '').toString(),
       destino: (json['destino'] ?? json['destination'] ?? '').toString(),
-      minutos: (json['minutos'] ?? json['eta_min'] ?? json['tempo'] ?? 0) as int,
-      matricula: json['matricula'] as String?,
+      minutos: (rawMin is double) ? rawMin.round() : (rawMin as int),
+      matricula: (json['veiculo_id'] ?? json['matricula'])?.toString(),
     );
   }
 }

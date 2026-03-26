@@ -6,8 +6,7 @@ class BusLine {
   final String origin;
   final String destination;
   final String municipality;
-  final List<String> stopsForward;
-  final List<String> stopsReverse;
+  final bool hasVolta;
   bool isFavorite;
 
   BusLine({
@@ -16,10 +15,11 @@ class BusLine {
     required this.origin,
     required this.destination,
     required this.municipality,
-    this.stopsForward = const [],
-    this.stopsReverse = const [],
+    this.hasVolta = false,
     this.isFavorite = false,
   });
+
+  List<String> get directions => [origin, destination];
 
   static const Map<String, Color> colorMap = {
     'azul': Color(0xFF052659),
@@ -34,6 +34,7 @@ class BusLine {
   factory BusLine.fromJson(Map<String, dynamic> json) {
     final sentidos = json['sentidos'] as Map<String, dynamic>? ?? {};
     final ida = sentidos['ida'] as Map<String, dynamic>? ?? {};
+    final volta = sentidos['volta'] as Map<String, dynamic>?;
 
     final corStr = (json['cor'] as String?)?.toLowerCase() ?? '';
 
@@ -43,6 +44,7 @@ class BusLine {
       origin: ida['origem'] as String? ?? '',
       destination: ida['destino'] as String? ?? '',
       municipality: json['municipio'] as String? ?? '',
+      hasVolta: volta != null,
     );
   }
 

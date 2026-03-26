@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/bus_line.dart';
 import '../../services/api_service.dart';
-import '../../widgets/bus_list_item.dart';
 import '../secondscreens/bus_detail_screen.dart';
 
 class StcpScreen extends StatefulWidget {
@@ -67,6 +66,13 @@ class _StcpScreenState extends State<StcpScreen> {
       });
       return;
     }
+
+    // sort numerically
+    lines.sort((a, b) {
+      final na = int.tryParse(a.number) ?? 9999;
+      final nb = int.tryParse(b.number) ?? 9999;
+      return na.compareTo(nb);
+    });
 
     for (final line in lines) {
       line.isFavorite = _favoriteNumbers.contains(line.number);
@@ -150,7 +156,7 @@ class _StcpScreenState extends State<StcpScreen> {
           ),
         ),
 
-        // filters
+        // municipality filters
         SliverToBoxAdapter(
           child: SizedBox(
             height: 48,
@@ -171,6 +177,18 @@ class _StcpScreenState extends State<StcpScreen> {
           ),
         ),
 
+        // section title
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+            child: Text(
+              'Linhas de Autocarro',
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+
         // content
         if (_isLoading)
           const SliverFillRemaining(
@@ -184,12 +202,12 @@ class _StcpScreenState extends State<StcpScreen> {
                 children: [
                   Icon(Icons.cloud_off_rounded,
                       size: 48,
-                      color: theme.colorScheme.onSurface.withAlpha(77)),
+                      color: theme.colorScheme.onSurface.withAlpha(100)),
                   const SizedBox(height: 12),
                   Text(
-                    'Sem liga\u00e7\u00e3o',
+                    'Erro ao carregar linhas',
                     style: TextStyle(
-                      color: theme.colorScheme.onSurface.withAlpha(128),
+                      color: theme.colorScheme.onSurface.withAlpha(150),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -201,45 +219,173 @@ class _StcpScreenState extends State<StcpScreen> {
               ),
             ),
           )
-        else if (filtered.isEmpty)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 48),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.search_off_rounded,
-                        size: 48,
-                        color: theme.colorScheme.onSurface.withAlpha(77)),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Sem resultados',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurface.withAlpha(128),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          )
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
             sliver: SliverList.separated(
               itemCount: filtered.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
+              separatorBuilder: (context, index) => const SizedBox(height: 10),
               itemBuilder: (_, i) {
                 final line = filtered[i];
-                return BusListItem(
-                  busLine: line,
+                return _BusLineTile(
+                  line: line,
                   onTap: () => _openDetail(line),
-                  onFavoriteToggle: () => _toggleFavorite(line),
+                  onToggleFav: () => _toggleFavorite(line),
                 );
               },
             ),
           ),
       ],
+    );
+  }
+}
+
+class _BusLineTile extends StatelessWidget {
+  final BusLine line;
+  final VoidCallback onTap;
+  final VoidCallback onToggleFav;
+
+  const _BusLineTile({
+    required this.line,
+    required this.onTap,
+    required this.onToggleFav,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: theme.cardTheme.color,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.colorScheme.outline.withAlpha(51),
+            ),
+          ),
+          child: Row(
+            children: [
+              // line number badge
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: line.color,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  line.number,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 17,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              // directions
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Linha ${line.number}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color:
+                                theme.colorScheme.primaryContainer.withAlpha(100),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            line.municipality,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            line.origin,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color:
+                                  theme.colorScheme.onSurface.withAlpha(160),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(
+                            Icons.compare_arrows_rounded,
+                            size: 16,
+                            color: line.color.withAlpha(180),
+                          ),
+                        ),
+                        Flexible(
+                          child: Text(
+                            line.destination,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color:
+                                  theme.colorScheme.onSurface.withAlpha(160),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // favorite heart
+              IconButton(
+                onPressed: onToggleFav,
+                icon: Icon(
+                  line.isFavorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color: line.isFavorite
+                      ? Colors.redAccent
+                      : line.color.withAlpha(130),
+                  size: 22,
+                ),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 36,
+                  minHeight: 36,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
